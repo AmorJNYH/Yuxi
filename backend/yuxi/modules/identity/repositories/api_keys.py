@@ -158,6 +158,31 @@ class APIKeyRepository:
         await self.db_session.refresh(api_key)
         return api_key
 
+    async def count_end_users_by_app(self, app_ids: list[str]) -> dict[str, int]:
+        """统计每个 APP 下的有效影子用户数。"""
+        if not app_ids:
+            return {}
+        result = await self.db_session.execute(
+            select(User.app_id, func.count(User.id))
+            .where(
+                User.user_kind == "end_user",
+                User.app_id.in_(app_ids),
+                User.is_deleted == 0,
+            )
+            .group_by(User.app_id)
+        )
+        return {app_id: count for app_id, count in result.all() if app_id}
+
+    async def list_app_keys(self) -> list[APIKey]:
+        """读取所有 APP 的未撤销凭据，排除已删除的所属用户。"""
+        result = await self.db_session.scalars(
+            select(APIKey)
+            .join(User, APIKey.user_id == User.id)
+            .where(APIKey.app_id.is_not(None), APIKey.revoked_at.is_(None), User.is_deleted == 0, User.user_kind == "human")
+            .order_by(APIKey.app_id, APIKey.created_at.desc(), APIKey.id)
+        )
+        return list(result)
+
     async def delete(self, api_key: APIKey) -> None:
         """撤销 API Key 并保留幂等 tombstone，阻止同一请求复活凭据。"""
 

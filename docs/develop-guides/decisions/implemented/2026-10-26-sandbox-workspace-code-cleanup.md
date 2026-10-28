@@ -33,9 +33,11 @@ sandbox_runner 与 workspace 两个模块经多轮功能迭代后积累了局部
 
 ## 验证
 
-- `ruff check yuxi`、`ruff format yuxi --check`、`ruff check --select I yuxi` 通过（仅 `api/routers/identity/users.py` 为 main 预存格式漂移，不在本次范围）；`git diff --check` 干净。
-- `uv run --no-sync --group test pytest test/unit -m "not slow"`：3419 passed，唯一失败 `test_ocr_parse_file_tool` 为 CUBE 环境变量缺失，未改动工作区同样失败。
-- 独立全新 Reviewer 审查完整 diff：发现并修复 1 处 blocker（viewer 上传预检复用完整条目构建引入 ValueError 失败面）与 2 处 minor（错误文案与常量联动、编码移回 fd 保护段）；其余文件逐项核对行为等价。
+- `ruff check yuxi`、`ruff format yuxi --check`、`ruff check --select I yuxi` 通过；`git diff --check` 干净。
+- API 容器内 `uv run --no-sync --group test pytest test/unit -m "not slow" -q`：3314 passed、125 skipped；容器缺少仓库根文件的配置用例由宿主配置与 provider 测试补验，共 225 项通过。本地旧镜像已按当前锁文件补齐 chardet，并按 Dockerfile 从 wheel 预置 OCR 模型；全新镜像仍由发布 CI 构建验证。
+- `test/integration/sandbox/test_container_sandbox.py` 在宿主真实 Docker、预构建 sandbox 镜像与独立合成目录上 26 项通过，覆盖文件字节、隔离、命令执行和清理。
+- 加载当前源码后的真实 API 运行 `test_viewer_filesystem_router.py`、`test_workspace_folder_upload_api.py`、`test_workspace_runtime_cache_api.py`，连同 API Key/MCP 回归共 59 项通过，验证上传、预览、下载、文件隔离与持久结果。
+- 独立 Reviewer 对完整差异和实际测试证据进行提交前审查。完整 Agent/worker E2E 由发布 CI 的 `Runtime System Tests` 验证；局部容器测试不代替该链路。
 
 旧能力不存在：相邻函数重复的命令校验块、暂存文件骨架、分块读取循环、fd 边界错误翻译与上传目标规划的内联实现均已删除，各只剩单一实现；`_viewer_state` 透传函数与写入路径的哨兵状态不再存在。
 

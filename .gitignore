@@ -51,6 +51,7 @@ cache
 .cursor
 .codex
 .pytest_cache
+.zcode
 
 *.secret*
 *.nogit*

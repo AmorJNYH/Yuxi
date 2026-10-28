@@ -134,6 +134,17 @@ class AgentInputRepository:
             result[run_id].append(input_id)
         return result
 
+    async def count_by_app(self, app_ids: list[str]) -> dict[str, int]:
+        """按 APP 统计外部持久输入，排除内部协作、HTTP 查询与幂等重试。"""
+        if not app_ids:
+            return {}
+        rows = await self.db.execute(
+            select(AgentInput.app_id, func.count(AgentInput.id))
+            .where(AgentInput.app_id.in_(app_ids), AgentInput.source != "cooperation")
+            .group_by(AgentInput.app_id)
+        )
+        return {app_id: total for app_id, total in rows if app_id}
+
     async def consume(self, *, inputs: list[AgentInput], turn_id: str, run_id: str) -> list[Message]:
         """同一事务固定消费归属、创建消息并绑定附件，失败全部回滚。"""
         turn = await self.db.get(AgentTurn, turn_id)

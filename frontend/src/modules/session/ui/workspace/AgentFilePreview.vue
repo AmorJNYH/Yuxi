@@ -763,7 +763,7 @@ onUnmounted(() => {
   top: 10px;
   right: 10px;
   z-index: 5;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 24px var(--shadow-3);
 }
 
 .file-path-title {
@@ -812,7 +812,7 @@ onUnmounted(() => {
 .preview-mode-btn.active {
   background: var(--gray-0);
   color: var(--gray-900);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px var(--shadow-2);
 }
 
 .text-mode-btn {
@@ -898,7 +898,7 @@ onUnmounted(() => {
   border: 1px solid var(--gray-150);
   border-radius: 999px;
   background: var(--gray-0);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 6px 18px var(--shadow-3);
   pointer-events: none;
 }
 
@@ -957,7 +957,7 @@ onUnmounted(() => {
 }
 
 .edit-floating-btn-primary {
-  color: var(--color-primary-600);
+  color: var(--main-600);
 
   &:hover:not(:disabled) {
     background: var(--color-primary-50);
@@ -1098,7 +1098,7 @@ onUnmounted(() => {
   }
 
   &.error-preview {
-    color: var(--color-error-600);
+    color: var(--color-error-700);
   }
 }
 
@@ -1151,7 +1151,7 @@ onUnmounted(() => {
   border: 1px solid var(--gray-200);
   border-radius: 999px;
   background: var(--color-trans-light);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 30px var(--shadow-4);
   backdrop-filter: blur(10px);
 
   .preview-mode-btn {
@@ -1167,7 +1167,7 @@ onUnmounted(() => {
   border-radius: 999px;
   background: var(--color-trans-light);
   border: 1px solid var(--gray-200);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 30px var(--shadow-4);
   backdrop-filter: blur(10px);
 }
 
