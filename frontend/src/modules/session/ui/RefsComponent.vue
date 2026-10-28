@@ -31,8 +31,8 @@
         保存中…
       </span>
       <!-- 模型名称 -->
-      <span v-if="showKey('model') && getModelName(msg)" class="item" @click="console.log(msg)">
-        <Bot size="12" /> {{ getModelName(msg) }}
+      <span v-if="showKey('model') && displayModelName" class="item" @click="console.log(msg)">
+        <Bot size="12" /> {{ displayModelName }}
       </span>
       <!-- 复制 -->
       <span v-if="showKey('copy')" class="item btn" @click="copyText(msg.content)" title="复制">
@@ -153,6 +153,7 @@ import UserFeedbackModal from '@/modules/session/ui/UserFeedbackModal.vue'
 import { formatRunTimingDuration, getRunTotalLatencyMs } from '@/modules/session/model/runTiming'
 import { useTurnReferencesStore } from '@/modules/session/model/turnReferences'
 import { useSessionFeedbackStore } from '@/modules/session/model/sessionFeedback'
+import { useModelDirectory } from '@/modules/settings'
 
 const emit = defineEmits(['retry', 'openRefs'])
 const props = defineProps({
@@ -325,6 +326,28 @@ const getModelName = (msg) => {
   }
   return null
 }
+
+// 模型名称：优先展示后端配置的别名，目录未就绪或未命中时回退到响应原始名称。
+const modelDirectory = useModelDirectory('chat')
+const resolvedModelName = ref('')
+const rawModelName = computed(() => msg.value?.response_metadata?.model_name || '')
+const displayModelName = computed(() => resolvedModelName.value || getModelName(msg.value) || '')
+watch(
+  rawModelName,
+  async (raw) => {
+    resolvedModelName.value = ''
+    if (!raw) return
+    try {
+      await modelDirectory.load()
+      // 目录加载期间本条消息的原始模型名已变化时放弃本次结果，由 watch 重新触发。
+      if (rawModelName.value !== raw) return
+      resolvedModelName.value = modelDirectory.resolveDisplayName({ modelId: raw })
+    } catch {
+      resolvedModelName.value = ''
+    }
+  },
+  { immediate: true }
+)
 const feedbackStore = useSessionFeedbackStore()
 // phase 来自服务端 result_run_id 与 output_message_id 的持久关联，流式 done 不足以开放评价。
 const feedbackEntry = computed(() => props.threadId && msg.value?.run_id && msg.value?.turn_id &&
