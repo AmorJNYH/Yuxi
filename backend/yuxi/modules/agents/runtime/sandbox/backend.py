@@ -12,6 +12,7 @@ from deepagents.backends import CompositeBackend
 from deepagents.backends.protocol import (
     FILE_NOT_FOUND,
     PERMISSION_DENIED,
+    DeleteResult,
     EditResult,
     ExecuteResponse,
     FileDownloadResponse,
@@ -337,6 +338,15 @@ class UserSandboxBackend(BaseSandbox):
     def delete_authorized_path(self, path: str, *, root: str) -> None:
         """受信 UI 删除只针对已授权 Workspace。"""
         self._files.workspace.delete_authorized_path(self._files.scope(path), root=self._files.scope(root))
+
+    def delete(self, file_path: str) -> DeleteResult:
+        """删除与写入同界：共享 Skill 投影只读；其余路径交上游在用户 VM 内删除。"""
+        try:
+            path = normalize_runtime_path(file_path)
+            self._check_writable(path)
+        except Exception as exc:
+            return DeleteResult(error=self._file_error(file_path, exc))
+        return super().delete(path)
 
     async def awrite(self, file_path: str, content: str) -> WriteResult:
         """文件线程收尾后才传播取消。"""

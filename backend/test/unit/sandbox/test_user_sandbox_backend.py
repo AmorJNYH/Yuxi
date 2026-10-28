@@ -192,3 +192,46 @@ def test_transfer_errors_report_actual_cause(backend):
     assert results[0].error == "file_not_found"
     results = backend.upload_files([(f"{SHARED_SKILLS_PATH}/demo/SKILL.md", b"modified")])
     assert results[0].error == "permission_denied"
+
+
+def test_shared_skills_delete_fails_closed_before_upstream_delete(backend, monkeypatch):
+    """共享投影删除在到达上游 rm 之前失败（负向：去掉同界检查时 pytest.fail 触发）。"""
+    from deepagents.backends.sandbox import BaseSandbox
+
+    def _upstream_must_not_run(self, file_path):
+        pytest.fail("越界删除不应到达上游 delete")
+
+    monkeypatch.setattr(BaseSandbox, "delete", _upstream_must_not_run)
+
+    result = backend.delete(f"{SHARED_SKILLS_PATH}/demo/SKILL.md")
+
+    assert result.error
+
+
+def test_delete_normalizes_path_before_upstream_call(backend):
+    """非法路径显式失败，不把相对路径交给上游 rm。"""
+    assert backend.delete("relative/does-not-exist").error
+
+
+@pytest.mark.asyncio
+async def test_async_file_tools_delegate_to_native_sync_implementations(backend):
+    """异步工具必须委托本类同步实现，而不是执行 BaseSandbox 的沙箱脚本（负向：删掉任一委托即调用上游脚本/文件 API）。"""
+    calls: list[str] = []
+    for name in ("read", "write", "edit", "ls", "glob", "grep"):
+        original = getattr(backend, name)
+
+        def _spy(*args, _name=name, _original=original, **kwargs):
+            calls.append(_name)
+            return _original(*args, **kwargs)
+
+        setattr(backend, name, _spy)
+
+    path = f"{WORKSPACE_PATH}/project/async.txt"
+    assert (await backend.awrite(path, "first\nneedle\n")).error is None
+    assert (await backend.aread(path)).file_data["content"].startswith("first")
+    assert (await backend.aedit(path, "needle", "changed")).occurrences == 1
+    assert (await backend.als(f"{WORKSPACE_PATH}/project")).entries
+    assert (await backend.aglob("*.txt", f"{WORKSPACE_PATH}/project")).matches
+    assert (await backend.agrep("changed", f"{WORKSPACE_PATH}/project")).matches
+
+    assert calls == ["write", "read", "edit", "ls", "glob", "grep"]
